@@ -7,6 +7,18 @@
 
 #include "subsystems/GamePieceManipulator.h"
 
+// Move these to the appropriate location
+constexpr double hingeMaxLeft = 4.7;
+constexpr double hingeMinLeft = 0.9;
+constexpr double hingeMaxRight = 4.7;
+constexpr double hingeMinRight = 0.9;
+constexpr double hingeLeftKp = 1.0;
+constexpr double hingeLeftKi = 0.0;
+constexpr double hingeLeftKd = 0.0;
+constexpr double hingeRightKp = 1.0;
+constexpr double hingeRightKi = 0.0;
+constexpr double hingeRightKd = 0.0;
+
 GamePieceManipulator::GamePieceManipulator() : frc::Subsystem("GamePieceManipulator") {
 
   // Pneumatic Hatch Panel Eject
@@ -27,11 +39,24 @@ GamePieceManipulator::GamePieceManipulator() : frc::Subsystem("GamePieceManipula
   bitsL = hingePotL->GetAverageBits();
   bitsR = hingePotR->GetAverageBits();
 
+  hingeInL = new HingePIDSource(hingePotL,
+    hingeMinLeft, hingeMaxLeft - hingeMinLeft);
+  hingeInR = new HingePIDSource(hingePotR,
+    hingeMinRight, hingeMaxRight - hingeMinRight);
+  hingeOutL = new HingePIDOutput(hingeMotorL);
+  hingeOutR = new HingePIDOutput(hingeMotorR);
+  hingePIDL = new frc::PIDController(hingeLeftKp, hingeLeftKi, hingeLeftKd,
+    *hingeInL, *hingeOutL);
+  hingePIDR = new frc::PIDController(hingeRightKp, hingeRightKi, hingeRightKd,
+    *hingeInR, *hingeOutR);
 }
 
 void GamePieceManipulator::InitDefaultCommand() {
   // Set the default command for a subsystem here.
   // SetDefaultCommand(new MySpecialCommand());
+  hingePIDL->SetInputRange(-1.0, 1.0);
+  hingePIDL->SetOutputRange(0.0, 1.0);
+  //hingePIDL->Enable();
   }
 
 // Put methods for controlling this subsystem
@@ -52,12 +77,14 @@ void GamePieceManipulator::HatchInject() {
     Arm Raise & Lower Methods
 ********************************/
 //v = velocity
+#define GP_DEADBAND 0.5
 void GamePieceManipulator::Move(double v) {
 
     double positionL = hingePotL->GetVoltage();
 
-    if ((v > 0 && positionL > HINGE_MIN_LEFT)
-        || (v < 0 && positionL < HINGE_MAX_LEFT)) {
+    if ((v > GP_DEADBAND && positionL > HINGE_MIN_LEFT)
+        || (v < -GP_DEADBAND && positionL < HINGE_MAX_LEFT)) {
+        v *= 10.0;
         hingeMotorL->Set(v);
     }
     else {
@@ -66,14 +93,14 @@ void GamePieceManipulator::Move(double v) {
 
     double positionR = hingePotR->GetVoltage();
 
-    if ((v > 0 && positionR > HINGE_MIN_RIGHT)
-        || (v < 0 && positionR < HINGE_MAX_RIGHT)) {
-        hingeMotorR->Set(v);
+    if ((v > GP_DEADBAND && positionR > HINGE_MIN_RIGHT)
+        || (v < -GP_DEADBAND && positionR < HINGE_MAX_RIGHT)) {
+        v *= 10.0;
+        hingeMotorR->Set(v*.91);
     }
     else {
         hingeMotorR->Set(0.0);
     }
-    
 }
 void GamePieceManipulator::Stop() {
     hingeMotorL->Set(0.0);
@@ -81,10 +108,39 @@ void GamePieceManipulator::Stop() {
 }
 
 
-double GamePieceManipulator::GetPosition() {
+double GamePieceManipulator::GetLPosition() {
     return hingePotL->GetVoltage();
+}
+double GamePieceManipulator::GetRPosition() {
     return hingePotR->GetVoltage();
 }
+
+// Helpers for hinge PIDController -------------------------------------------
+HingePIDSource::HingePIDSource(frc::AnalogInput *pot, double min, double range)
+  : frc::PIDSource() {
+  m_min = min;
+  m_range = range;
+  m_pot = pot;
+  m_pidSource = frc::PIDSourceType::kDisplacement;
+}
+double HingePIDSource::PIDGet() {
+  double v = m_pot->GetVoltage();
+  // Scale result to [0.0, 1.0]
+  v = (v - m_min) / m_range;
+  return v;
+}
+void HingePIDSource::SetPIDSourceType(frc::PIDSourceType pidSource) {
+  // No-op (do not change from default)
+}
+
+HingePIDOutput::HingePIDOutput(WPI_TalonSRX *motor) : frc::PIDOutput() {
+  m_motor = motor;
+}
+void HingePIDOutput::PIDWrite(double d) {
+  m_motor->Set(d);
+}
+
+// ----------------------------------------------------------------------------
 
 /*******************************
     Cargo Ball Methods
