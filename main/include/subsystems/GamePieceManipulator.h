@@ -19,8 +19,8 @@
 // Max and min voltage for hinge pot positions
 #define HINGE_MAX_LEFT 4.7
 #define HINGE_MIN_LEFT .7
-#define HINGE_MAX_RIGHT 4.8
-#define HINGE_MIN_RIGHT .8
+#define HINGE_MAX_RIGHT 4.95
+#define HINGE_MIN_RIGHT 0.3
 // Top: 4.7V Bottom: 1.2V (3.5V = 90 degrees)
 // Appox .039V per degree *** NON-LINEAR ***
 
@@ -59,6 +59,9 @@ class GamePieceManipulator : public frc::Subsystem {
   void HatchEject();
   void HatchInject();
   void Move(double); // manual arm raise/lower
+  void MoveTo(double); // move to position arm raise/lower
+  void EnablePIDLoop();
+  void DisablePIDLoop();
   void Stop();
   double GetLPosition();
   double GetRPosition();
@@ -81,7 +84,11 @@ class HingePIDSource : public frc::PIDSource {
 
 class HingePIDOutput : public frc::PIDOutput {
   WPI_TalonSRX *m_motor;
+  frc::AnalogInput *m_pot;
+  double m_min;
+  double m_range;
  public:
-  HingePIDOutput(WPI_TalonSRX *motor);
+  HingePIDOutput(WPI_TalonSRX *motor, frc::AnalogInput *pot,
+    double min, double range);
   void PIDWrite(double d);
 };
