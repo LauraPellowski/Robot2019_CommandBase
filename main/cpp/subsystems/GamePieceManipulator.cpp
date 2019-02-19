@@ -22,6 +22,7 @@ constexpr double hingeRightKd = 0.0;
 
 GamePieceManipulator::GamePieceManipulator() : frc::Subsystem("GamePieceManipulator") {
 
+  ballIntakeLimit = new frc::DigitalInput(0);
   // Pneumatic Hatch Panel Eject
   hatchPanel = new frc::DoubleSolenoid(0,1); // PCM Ports
   // Cargo Ball Intake/Eject Motor
@@ -150,10 +151,16 @@ void HingePIDOutput::PIDWrite(double d) {
     Cargo Ball Methods
 ********************************/
 void GamePieceManipulator::CargoLoad() {
-    ballMotor->Set(1.0);
+  if (ballIntakeLimit->Get()>0) {
+    ballMotor->Set(0.0);
+  }
+  else {
+    ballMotor->Set(-0.5);
+  }
+
 }
 void GamePieceManipulator::CargoEject() {
-    ballMotor->Set(-1.0);
+    ballMotor->Set(1.0);
 }
 void GamePieceManipulator::CargoStop() {
     ballMotor->Set(0.0);

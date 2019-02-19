@@ -14,6 +14,7 @@
 #include <frc/DoubleSolenoid.h>
 #include <ctre/Phoenix.h>
 #include <frc/AnalogInput.h>
+#include <frc/DigitalInput.h>
 
 // Max and min voltage for hinge pot positions
 #define HINGE_MAX_LEFT 4.7
@@ -50,6 +51,7 @@ class GamePieceManipulator : public frc::Subsystem {
   HingePIDOutput *hingeOutR;
   frc::PIDController *hingePIDL;
   frc::PIDController *hingePIDR;
+  frc::DigitalInput *ballIntakeLimit;
 
  public:
   GamePieceManipulator();
