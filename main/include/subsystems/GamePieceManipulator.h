@@ -16,6 +16,7 @@
 #include <frc/AnalogInput.h>
 #include <frc/DigitalInput.h>
 
+
 // Forward declarations
 class HingePIDSource;
 class HingePIDOutput;
